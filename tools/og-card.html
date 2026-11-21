@@ -1,0 +1,70 @@
+<!doctype html>
+<!-- Source for og-image.png (the preview shown when the link is shared).
+     Re-render with: node tools/render-og.mjs -->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; }
+  body {
+    width: 1200px; height: 630px; overflow: hidden;
+    background: #f7f5f0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    display: flex; align-items: center; gap: 70px; padding: 0 80px; box-sizing: border-box;
+  }
+  .copy { flex: 1; }
+  .logo { width: 110px; height: 110px; display: block; margin-bottom: 26px; }
+  h1 { font-family: "Iowan Old Style", Palatino, Georgia, serif; font-size: 108px; margin: 0; color: #1b1d21; letter-spacing: -2px; line-height: 1; }
+  p { font-size: 34px; line-height: 1.25; color: #3b3f46; margin: 22px 0 0; }
+  .levels { display: flex; gap: 14px; margin-top: 34px; }
+  .lv { font-size: 24px; font-weight: 700; padding: 10px 20px; border-radius: 999px; background: #fff; color: #1b1d21; box-shadow: 0 2px 6px rgba(0,0,0,.08); display: flex; align-items: center; gap: 10px; }
+  .lv i { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
+  .board { display: grid; grid-template-columns: repeat(4, 112px); gap: 6px; padding: 16px; background: #fff; border-radius: 28px; box-shadow: 0 20px 60px rgba(0,0,0,.12); }
+  .t { width: 112px; height: 112px; background: #ebe7de; border-radius: 14px; position: relative; overflow: visible; }
+  .t svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+</style>
+</head>
+<body>
+  <div class="copy">
+    <svg class="logo" viewBox="0 0 100 100">
+      <rect x="4" y="4" width="92" height="92" rx="22" fill="#2a8cff"/>
+      <path d="M50 96V58a8 8 0 0 1 8-8h38" fill="none" stroke="#0b3d7a" stroke-width="22"/>
+      <path d="M50 96V58a8 8 0 0 1 8-8h38" fill="none" stroke="#bfe3ff" stroke-width="10"/>
+      <circle cx="34" cy="34" r="16" fill="#fff"/>
+      <path d="M34 23c5 6 8 9.5 8 13a8 8 0 0 1-16 0c0-3.5 3-7 8-13z" fill="#2a8cff"/>
+    </svg>
+    <h1>Pipeflow</h1>
+    <p>Turn pipes. Water every house.<br>Three new puzzles every day.</p>
+    <div class="levels">
+      <span class="lv"><i style="background:#3fa34d"></i>Easy</span>
+      <span class="lv"><i style="background:#e8b923"></i>Medium</span>
+      <span class="lv"><i style="background:#e5484d"></i>Hard</span>
+    </div>
+  </div>
+  <div class="board" id="board"></div>
+<script>
+  // A solved 4x4 network: N=1 E=2 S=4 W=8. Tank at index 5; a few pipes dry to show the puzzle.
+  // Two tiles (11 and 13) are turned wrong, so the water stops there.
+  const masks = [6, 8, 4, 4,  3, 14, 11, 13,  4, 5, 6, 3,  3, 12, 3, 8];
+  const tank = 5, dry = new Set([8, 10, 12, 13, 14, 15]);
+  const arm = { 1: [50, -4], 2: [104, 50], 4: [50, 104], 8: [-4, 50] };
+  const pop = (m) => [1, 2, 4, 8].filter((d) => m & d).length;
+  const house = `<path d="M50 25 L76 47 H24 Z" fill="#3e4248"/><rect x="31" y="45" width="38" height="29" rx="2" fill="#5b5f66"/>`;
+  const win = (lit) => `<rect x="38" y="51" width="9" height="9" rx="1.5" fill="${lit}"/><rect x="53" y="51" width="9" height="9" rx="1.5" fill="${lit}"/><rect x="45.5" y="63" width="9" height="11" rx="1" fill="${lit}"/>`;
+  const b = document.getElementById('board');
+  masks.forEach((m, c) => {
+    const wet = !dry.has(c);
+    let s = '';
+    for (const d of [1, 2, 4, 8]) if (m & d) s += `<line x1="50" y1="50" x2="${arm[d][0]}" y2="${arm[d][1]}" stroke="#a6abb3" stroke-width="26"/>`;
+    s += `<circle cx="50" cy="50" r="13" fill="#a6abb3"/>`;
+    if (wet) {
+      for (const d of [1, 2, 4, 8]) if (m & d) s += `<line x1="50" y1="50" x2="${arm[d][0]}" y2="${arm[d][1]}" stroke="#2a8cff" stroke-width="12"/>`;
+      s += `<circle cx="50" cy="50" r="6" fill="#2a8cff"/>`;
+    }
+    if (c === tank) s += `<circle cx="50" cy="50" r="33" fill="none" stroke="#2a8cff" stroke-width="4" opacity=".5"/><circle cx="50" cy="50" r="26" fill="#0b3d7a"/><path d="M50 34c6 7.5 10 12 10 16.5a10 10 0 0 1-20 0C40 46 44 41.5 50 34z" fill="#2a8cff"/>`;
+    else if (pop(m) === 1) s += house + win(wet ? '#ffc93c' : '#c9ccd1');
+    b.insertAdjacentHTML('beforeend', `<div class="t"><svg viewBox="0 0 100 100">${s}</svg></div>`);
+  });
+</script>
+</body>
+</html>
