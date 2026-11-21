@@ -6,7 +6,7 @@ window.PIPEFLOW_CONFIG = {
   launchDate: '2026-11-21',
 
   // Shown at the end of the share text. Set it to your real domain.
-  siteUrl: 'mfruch-web.github.io/pipeflow',
+  siteUrl: 'playpipeflow.com',
 
   // Google AdSense. Leave the client empty until your account is approved;
   // the ad slots stay hidden until then.

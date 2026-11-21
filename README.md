@@ -22,6 +22,10 @@ Handy URL flags (for testing only):
 
 To reset your progress: Safari → Settings → Advanced → Website Data, then delete the site.
 
+## Live site
+
+**https://playpipeflow.com**, hosted on Cloudflare Pages and connected to this repo, so every push to `main` deploys automatically. The old GitHub Pages address (`mfruch-web.github.io/pipeflow`) forwards to the new domain.
+
 ## Deploy
 
 Upload the folder to any static host. Netlify, Vercel, Cloudflare Pages and GitHub Pages all work and are free. Then:
