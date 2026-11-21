@@ -475,17 +475,21 @@
   }
 
   // ---------- Scoring ----------
-  function squares(delta) {
-    const G = '🟩', Y = '🟨', O = '🟧';
-    if (delta <= 0) return G + G + G + G;
-    if (delta <= 2) return G + G + G + Y;
-    if (delta <= 5) return G + G + Y + Y;
-    if (delta <= 9) return G + Y + Y + Y;
-    if (delta <= 14) return Y + Y + Y + Y;
-    return Y + Y + Y + O;
+  // Grades are by percent over par, so +10 on a 107-par Hard board scores
+  // the same as +2 on a 21-par Easy board.
+  //   Par: 🟩🟩🟩🟩   up to 10%: 🟩🟩🟩🟨   up to 25%: 🟩🟩🟨🟨
+  //   up to 50%: 🟩🟨🟨🟨   up to 100%: 🟨🟨🟨🟨   more: 🟨🟨🟨🟧
+  const TIER_LIMITS = [0, 0.10, 0.25, 0.50, 1.00];
+  function tier(delta, par) {
+    if (delta <= 0) return 0;
+    const pct = delta / Math.max(1, par);
+    const i = TIER_LIMITS.findIndex((lim) => pct <= lim);
+    return i === -1 ? 5 : i;
   }
-  const verdict = (delta) => delta <= 0 ? 'Perfect flow' : delta <= 2 ? 'Smooth sailing'
-    : delta <= 5 ? 'Nicely done' : delta <= 9 ? 'A few drips' : delta <= 14 ? 'Leaky but done' : 'You got there';
+  const SQUARES = ['🟩🟩🟩🟩', '🟩🟩🟩🟨', '🟩🟩🟨🟨', '🟩🟨🟨🟨', '🟨🟨🟨🟨', '🟨🟨🟨🟧'];
+  const VERDICTS = ['Perfect flow', 'Smooth sailing', 'Nicely done', 'A few drips', 'Leaky but done', 'You got there'];
+  const squares = (delta, par) => SQUARES[tier(delta, par)];
+  const verdict = (delta, par) => VERDICTS[tier(delta, par)];
   const parText = (delta) => (delta <= 0 ? 'Par' : `Par +${delta}`);
   // Score vs par: taps plus the hint penalty. Works on live state and saved results.
   const deltaOf = (r, par) => r.taps + (r.hints || 0) * HINT_PENALTY - (par !== undefined ? par : r.par);
@@ -500,7 +504,7 @@
       if (st.gaveUp) lines.push(`${label} · gave up 🏳️`);
       else {
         const delta = deltaOf(st, getPuzzle(lv).par);
-        lines.push(`${label} · ${fmtTime(st.elapsed)} · ${parText(delta)} ${squares(delta)}${st.hints ? ` 💡${st.hints}` : ''}`);
+        lines.push(`${label} · ${fmtTime(st.elapsed)} · ${parText(delta)} ${squares(delta, getPuzzle(lv).par)}${st.hints ? ` 💡${st.hints}` : ''}`);
       }
     }
     lines.push(CFG.siteUrl);
@@ -543,14 +547,16 @@
       max = Math.max(max, run);
       prev = t;
     }
-    const deltas = solved.map((e) => Math.max(0, deltaOf(e)));
-    const buckets = [['Par', 0, 0], ['+1–2', 1, 2], ['+3–5', 3, 5], ['+6–9', 6, 9], ['+10', 10, Infinity]]
-      .map(([label, lo, hi]) => ({ label, lo, hi, count: deltas.filter((x) => x >= lo && x <= hi).length }));
+    // Chart rows follow the share-square grades; the last row also holds the 100%+ grade.
+    const rowOf = (e) => Math.min(4, tier(deltaOf(e), e.par));
+    const rows = solved.map(rowOf);
+    const buckets = ['Par', '≤10%', '≤25%', '≤50%', '>50%']
+      .map((label, i) => ({ label, row: i, count: rows.filter((r) => r === i).length }));
     buckets.push({ label: 'Gave up', gaveUp: true, count: entries.length - solved.length });
     return {
       played: entries.length,
       solvePct: entries.length ? Math.round((100 * solved.length) / entries.length) : 0,
-      streak, max, buckets, history,
+      streak, max, buckets, history, rowOf,
     };
   }
 
@@ -565,8 +571,7 @@
     $('s-dist').innerHTML = s.buckets.map((b) => {
       let isToday = false;
       if (mine) {
-        const d = mine.gaveUp ? null : Math.max(0, deltaOf(mine));
-        isToday = b.gaveUp ? !!mine.gaveUp : d !== null && d >= b.lo && d <= b.hi;
+        isToday = b.gaveUp ? !!mine.gaveUp : !mine.gaveUp && s.rowOf(mine) === b.row;
       }
       return `<div class="dist-row"><span>${b.label}</span><span class="dist-bar${isToday ? ' today' : ''}" style="width:${Math.max(8, (b.count / most) * 100)}%">${b.count}</span></div>`;
     }).join('');
@@ -641,10 +646,10 @@
       $('r-squares').textContent = '';
     } else {
       const delta = deltaOf(st, puzzle.par);
-      $('result-title').textContent = verdict(delta);
+      $('result-title').textContent = verdict(delta, puzzle.par);
       $('r-par').textContent = parText(delta);
       $('r-taps').textContent = `${st.taps} taps${hintText(st.hints)} · par ${puzzle.par}`;
-      $('r-squares').textContent = squares(delta);
+      $('r-squares').textContent = squares(delta, puzzle.par);
     }
     const next = nextLevel();
     $('r-next').hidden = !next;
